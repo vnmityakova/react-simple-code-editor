@@ -31,6 +31,7 @@ type Props = React.ElementConfig<'div'> & {
   onBlur?: (e: FocusEvent) => mixed,
   onKeyUp?: (e: KeyboardEvent) => mixed,
   onKeyDown?: (e: KeyboardEvent) => mixed,
+  loadMenuItems?: (param) => mixed,
 
   // Props for the hightlighted code’s pre element
   preClassName?: string,
@@ -38,6 +39,7 @@ type Props = React.ElementConfig<'div'> & {
 
 type State = {
   capture: boolean,
+  menu: any
 };
 
 type Record = {
@@ -68,7 +70,7 @@ const HISTORY_TIME_GAP = 3000;
 
 const isWindows = 'navigator' in global && /Win/i.test(navigator.platform);
 const isMacLike =
-  'navigator' in global && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+    'navigator' in global && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 
 const className = 'npm__react-simple-code-editor__textarea';
 
@@ -110,6 +112,10 @@ export default class Editor extends React.Component<Props, State> {
 
   state = {
     capture: true,
+    top: 0,
+    left: 0,
+    isMenuVisible: false,
+    menu: null
   };
 
   componentDidMount() {
@@ -132,7 +138,7 @@ export default class Editor extends React.Component<Props, State> {
   };
 
   _getLines = (text: string, position: number) =>
-    text.substring(0, position).split('\n');
+      text.substring(0, position).split('\n');
 
   _recordChange = (record: Record, overwrite?: boolean = false) => {
     const { stack, offset } = this._history;
@@ -165,13 +171,13 @@ export default class Editor extends React.Component<Props, State> {
 
         // Get the previous line
         const previous = this._getLines(last.value, last.selectionStart)
-          .pop()
-          .match(re);
+            .pop()
+            .match(re);
 
         // Get the current line
         const current = this._getLines(record.value, record.selectionStart)
-          .pop()
-          .match(re);
+            .pop()
+            .match(re);
 
         if (previous && current && current[1].startsWith(previous[1])) {
           // The last word of the previous line and current line match
@@ -274,19 +280,19 @@ export default class Editor extends React.Component<Props, State> {
         const startLine = linesBeforeCaret.length - 1;
         const endLine = this._getLines(value, selectionEnd).length - 1;
         const nextValue = value
-          .split('\n')
-          .map((line, i) => {
-            if (
-              i >= startLine &&
-              i <= endLine &&
-              line.startsWith(tabCharacter)
-            ) {
-              return line.substring(tabCharacter.length);
-            }
+            .split('\n')
+            .map((line, i) => {
+              if (
+                  i >= startLine &&
+                  i <= endLine &&
+                  line.startsWith(tabCharacter)
+              ) {
+                return line.substring(tabCharacter.length);
+              }
 
-            return line;
-          })
-          .join('\n');
+              return line;
+            })
+            .join('\n');
 
         if (value !== nextValue) {
           const startLineText = linesBeforeCaret[startLine];
@@ -296,8 +302,8 @@ export default class Editor extends React.Component<Props, State> {
             // Move the start cursor if first line in selection was modified
             // It was modified only if it started with a tab
             selectionStart: startLineText.startsWith(tabCharacter)
-              ? selectionStart - tabCharacter.length
-              : selectionStart,
+                ? selectionStart - tabCharacter.length
+                : selectionStart,
             // Move the end cursor by total number of characters removed
             selectionEnd: selectionEnd - (value.length - nextValue.length),
           });
@@ -311,23 +317,23 @@ export default class Editor extends React.Component<Props, State> {
 
         this._applyEdits({
           value: value
-            .split('\n')
-            .map((line, i) => {
-              if (i >= startLine && i <= endLine) {
-                return tabCharacter + line;
-              }
+              .split('\n')
+              .map((line, i) => {
+                if (i >= startLine && i <= endLine) {
+                  return tabCharacter + line;
+                }
 
-              return line;
-            })
-            .join('\n'),
+                return line;
+              })
+              .join('\n'),
           // Move the start cursor by number of characters added in first line of selection
           // Don't move it if it there was no text before cursor
           selectionStart: /\S/.test(startLineText)
-            ? selectionStart + tabCharacter.length
-            : selectionStart,
+              ? selectionStart + tabCharacter.length
+              : selectionStart,
           // Move the end cursor by total number of characters added
           selectionEnd:
-            selectionEnd + tabCharacter.length * (endLine - startLine + 1),
+              selectionEnd + tabCharacter.length * (endLine - startLine + 1),
         });
       } else {
         const updatedSelection = selectionStart + tabCharacter.length;
@@ -335,9 +341,9 @@ export default class Editor extends React.Component<Props, State> {
         this._applyEdits({
           // Insert tab character at caret
           value:
-            value.substring(0, selectionStart) +
-            tabCharacter +
-            value.substring(selectionEnd),
+              value.substring(0, selectionStart) +
+              tabCharacter +
+              value.substring(selectionEnd),
           // Update caret position
           selectionStart: updatedSelection,
           selectionEnd: updatedSelection,
@@ -356,8 +362,8 @@ export default class Editor extends React.Component<Props, State> {
         this._applyEdits({
           // Remove tab character at caret
           value:
-            value.substring(0, selectionStart - tabCharacter.length) +
-            value.substring(selectionEnd),
+              value.substring(0, selectionStart - tabCharacter.length) +
+              value.substring(selectionEnd),
           // Update caret position
           selectionStart: updatedSelection,
           selectionEnd: updatedSelection,
@@ -380,9 +386,9 @@ export default class Editor extends React.Component<Props, State> {
           this._applyEdits({
             // Insert indentation character at caret
             value:
-              value.substring(0, selectionStart) +
-              indent +
-              value.substring(selectionEnd),
+                value.substring(0, selectionStart) +
+                indent +
+                value.substring(selectionEnd),
             // Update caret position
             selectionStart: updatedSelection,
             selectionEnd: updatedSelection,
@@ -390,10 +396,10 @@ export default class Editor extends React.Component<Props, State> {
         }
       }
     } else if (
-      e.keyCode === KEYCODE_PARENS ||
-      e.keyCode === KEYCODE_BRACKETS ||
-      e.keyCode === KEYCODE_QUOTE ||
-      e.keyCode === KEYCODE_BACK_QUOTE
+        e.keyCode === KEYCODE_PARENS ||
+        e.keyCode === KEYCODE_BRACKETS ||
+        e.keyCode === KEYCODE_QUOTE ||
+        e.keyCode === KEYCODE_BACK_QUOTE
     ) {
       let chars;
 
@@ -421,46 +427,46 @@ export default class Editor extends React.Component<Props, State> {
 
         this._applyEdits({
           value:
-            value.substring(0, selectionStart) +
-            chars[0] +
-            value.substring(selectionStart, selectionEnd) +
-            chars[1] +
-            value.substring(selectionEnd),
+              value.substring(0, selectionStart) +
+              chars[0] +
+              value.substring(selectionStart, selectionEnd) +
+              chars[1] +
+              value.substring(selectionEnd),
           // Update caret position
           selectionStart,
           selectionEnd: selectionEnd + 2,
         });
       }
     } else if (
-      (isMacLike
-        ? // Trigger undo with ⌘+Z on Mac
-          e.metaKey && e.keyCode === KEYCODE_Z
-        : // Trigger undo with Ctrl+Z on other platforms
-          e.ctrlKey && e.keyCode === KEYCODE_Z) &&
-      !e.shiftKey &&
-      !e.altKey
+        (isMacLike
+            ? // Trigger undo with ⌘+Z on Mac
+            e.metaKey && e.keyCode === KEYCODE_Z
+            : // Trigger undo with Ctrl+Z on other platforms
+            e.ctrlKey && e.keyCode === KEYCODE_Z) &&
+        !e.shiftKey &&
+        !e.altKey
     ) {
       e.preventDefault();
 
       this._undoEdit();
     } else if (
-      (isMacLike
-        ? // Trigger redo with ⌘+Shift+Z on Mac
-          e.metaKey && e.keyCode === KEYCODE_Z && e.shiftKey
-        : isWindows
-          ? // Trigger redo with Ctrl+Y on Windows
-            e.ctrlKey && e.keyCode === KEYCODE_Y
-          : // Trigger redo with Ctrl+Shift+Z on other platforms
-            e.ctrlKey && e.keyCode === KEYCODE_Z && e.shiftKey) &&
-      !e.altKey
+        (isMacLike
+            ? // Trigger redo with ⌘+Shift+Z on Mac
+            e.metaKey && e.keyCode === KEYCODE_Z && e.shiftKey
+            : isWindows
+                ? // Trigger redo with Ctrl+Y on Windows
+                e.ctrlKey && e.keyCode === KEYCODE_Y
+                : // Trigger redo with Ctrl+Shift+Z on other platforms
+                e.ctrlKey && e.keyCode === KEYCODE_Z && e.shiftKey) &&
+        !e.altKey
     ) {
       e.preventDefault();
 
       this._redoEdit();
     } else if (
-      e.keyCode === KEYCODE_M &&
-      e.ctrlKey &&
-      (isMacLike ? e.shiftKey : true)
+        e.keyCode === KEYCODE_M &&
+        e.ctrlKey &&
+        (isMacLike ? e.shiftKey : true)
     ) {
       e.preventDefault();
 
@@ -475,12 +481,12 @@ export default class Editor extends React.Component<Props, State> {
     const { value, selectionStart, selectionEnd } = e.target;
 
     this._recordChange(
-      {
-        value,
-        selectionStart,
-        selectionEnd,
-      },
-      true
+        {
+          value,
+          selectionStart,
+          selectionEnd,
+        },
+        true
     );
 
     this.props.onValueChange(value);
@@ -501,6 +507,26 @@ export default class Editor extends React.Component<Props, State> {
 
   set session(session: { history: History }) {
     this._history = session.history;
+  }
+
+  onContextMenu = (e) => {
+    e.preventDefault();
+    console.log("Caret position: " + e.target.selectionStart, e.target.value.substring(0, e.target.selectionStart));
+    console.log(e.pageY, e.pageX);
+    this.setState({
+      isMenuVisible: true,
+      top: e.pageY,
+      left: e.pageX,
+      menu: null
+    });
+    this.props.loadMenuItems(e.target.value.substring(0, e.target.selectionStart)).then((li) => {
+        this.setState({ menu: <ul>{li}</ul>});
+      });
+  };
+
+  handleClick = (e) => {
+    this.setState({ isMenuVisible: false, menu: null });
+    if(this.props.onClick) this.props.onClick(e);
   }
 
   render() {
@@ -543,53 +569,58 @@ export default class Editor extends React.Component<Props, State> {
     };
 
     const highlighted = highlight(value);
-
+    const addClass = this.state.isMenuVisible ? 'visible' : ''
     return (
-      <div {...rest} style={{ ...styles.container, ...style }}>
+        <React.Fragment>
+          <div className={`menu ${addClass}`} style={{ top: this.state.top, left: this.state.left }}>{this.state.menu}</div>
+          <div {...rest} style={{ ...styles.container, ...style }}>
+
         <textarea
-          ref={c => (this._input = c)}
-          style={{
-            ...styles.editor,
-            ...styles.textarea,
-            ...contentStyle,
-          }}
-          className={
-            className + (textareaClassName ? ` ${textareaClassName}` : '')
-          }
-          id={textareaId}
-          value={value}
-          onChange={this._handleChange}
-          onKeyDown={this._handleKeyDown}
-          onClick={onClick}
-          onKeyUp={onKeyUp}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          disabled={disabled}
-          form={form}
-          maxLength={maxLength}
-          minLength={minLength}
-          name={name}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          required={required}
-          autoFocus={autoFocus}
-          autoCapitalize="off"
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          data-gramm={false}
+            ref={c => (this._input = c)}
+            style={{
+              ...styles.editor,
+              ...styles.textarea,
+              ...contentStyle,
+            }}
+            className={
+              className + (textareaClassName ? ` ${textareaClassName}` : '')
+            }
+            id={textareaId}
+            value={value}
+            onChange={this._handleChange}
+            onContextMenu={this.onContextMenu}
+            onKeyDown={this._handleKeyDown}
+            onClick={this.handleClick}
+            onKeyUp={onKeyUp}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            disabled={disabled}
+            form={form}
+            maxLength={maxLength}
+            minLength={minLength}
+            name={name}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            required={required}
+            autoFocus={autoFocus}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            data-gramm={false}
         />
-        <pre
-          className={preClassName}
-          aria-hidden="true"
-          style={{ ...styles.editor, ...styles.highlight, ...contentStyle }}
-          {...(typeof highlighted === 'string'
-            ? { dangerouslySetInnerHTML: { __html: highlighted + '<br />' } }
-            : { children: highlighted })}
-        />
-        {/* eslint-disable-next-line react/no-danger */}
-        <style type="text/css" dangerouslySetInnerHTML={{ __html: cssText }} />
-      </div>
+            <pre
+                className={preClassName}
+                aria-hidden="true"
+                style={{ ...styles.editor, ...styles.highlight, ...contentStyle }}
+                {...(typeof highlighted === 'string'
+                    ? { dangerouslySetInnerHTML: { __html: highlighted + '<br />' } }
+                    : { children: highlighted })}
+            />
+            {/* eslint-disable-next-line react/no-danger */}
+            <style type="text/css" dangerouslySetInnerHTML={{ __html: cssText }} />
+          </div>
+        </React.Fragment>
     );
   }
 }

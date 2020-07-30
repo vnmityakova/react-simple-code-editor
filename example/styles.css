@@ -130,3 +130,15 @@ body {
 .token.entity {
   cursor: help;
 }
+.menu {
+  background-color: #fff;
+  position: absolute;
+  z-index: 1;
+  border: 1px solid gray;
+  padding: 3px;
+  visibility: hidden;
+}
+
+.visible {
+  visibility: visible;
+}
