@@ -509,18 +509,26 @@ export default class Editor extends React.Component<Props, State> {
     this._history = session.history;
   }
 
+  onMenuClick = (item, selectionStart, value) => (e) => {
+    const newValue = [value.slice(0, selectionStart), item, value.slice(selectionStart)].join('')
+    this.setState({ isMenuVisible: false, menu: null });
+    this._handleChange({ target: { value: newValue, selectionStart: selectionStart, selectionEnd: selectionStart } })
+  }
+
   onContextMenu = (e) => {
     e.preventDefault();
-    console.log("Caret position: " + e.target.selectionStart, e.target.value.substring(0, e.target.selectionStart));
-    console.log(e.pageY, e.pageX);
+    e.persist();
+    // console.log("Caret position: " + e.target.selectionStart, e.target.value.substring(0, e.target.selectionStart));
+    // console.log(e.pageY, e.pageX);
     this.setState({
       isMenuVisible: true,
       top: e.pageY,
       left: e.pageX,
       menu: null
     });
-    this.props.loadMenuItems(e.target.value.substring(0, e.target.selectionStart)).then((li) => {
-        this.setState({ menu: <ul>{li}</ul>});
+    this.props.loadMenuItems(e.target.value.substring(0, e.target.selectionStart)).then((itemsList) => {
+        const menu = itemsList.map((item, i) => <li key={i} onClick={this.onMenuClick(item, e.target.selectionStart, e.target.value)}>{item}</li>);
+        this.setState({ menu: <ul>{menu}</ul>});
       });
   };
 

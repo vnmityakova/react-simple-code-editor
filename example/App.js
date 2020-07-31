@@ -37,7 +37,7 @@ class App extends React.Component<{}, State> {
 
   loadMenuItems = (param) => {
     return new Promise((resolve) => {
-      setTimeout(() => resolve(<React.Fragment><li>Меню 1!</li><li>Меню 2!</li></React.Fragment>), 1000);
+      setTimeout(() => resolve(['Меню 1!', 'Меню 2!']), 1000);
     });
   };
 
